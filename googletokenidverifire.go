@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"net/http"
 	"strings"
@@ -97,7 +98,10 @@ func VerifyGoogleIDToken(authToken string, certs *Certs, aud string) *TokenInfo 
 
 func getTokenInfo(bt []byte) *TokenInfo {
 	var a *TokenInfo
-	json.Unmarshal(bt, &a)
+	err := json.Unmarshal(bt, &a)
+	if err != nil {
+		log.Printf("token unmarshall error: %s", err.Error())
+	}
 	return a
 }
 
@@ -119,7 +123,10 @@ func GetCertsFromURL() []byte {
 //GetCerts is
 func GetCerts(bt []byte) *Certs {
 	var certs *Certs
-	json.Unmarshal(bt, &certs)
+	err := json.Unmarshal(bt, &certs)
+	if err != nil {
+		log.Printf("certs unmarshall error: %s", err.Error())
+	}
 	return certs
 }
 
@@ -131,23 +138,27 @@ func urlsafeB64decode(str string) []byte {
 	return bt
 }
 
-func choiceKeyByKeyID(a []keys, tknkid string) (keys, error) {
-	if len(a) == 2 {
-		if a[0].Kid == tknkid {
-			return a[0], nil
-		}
-		if a[1].Kid == tknkid {
-			return a[1], nil
+func choiceKeyByKeyID(a []keys, tknkId string) (keys, error) {
+	if len(a) > 0 {
+		for _, key := range a {
+			if key.Kid == tknkId {
+				return key, nil
+			}
 		}
 	}
-	err := errors.New("Token is not valid, kid from token and certificate don't match")
+
+	err := errors.New("token is not valid. There is no keyId or certificate doesn't match")
 	var b keys
 	return b, err
 }
 
 func getAuthTokenKeyID(bt []byte) string {
 	var a keys
-	json.Unmarshal(bt, &a)
+	err := json.Unmarshal(bt, &a)
+	if err != nil {
+		log.Printf("authToken unmarshall error: %s", err.Error())
+		return ""
+	}
 	return a.Kid
 }
 

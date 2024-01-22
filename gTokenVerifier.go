@@ -1,4 +1,4 @@
-package GoogleIdTokenVerifier
+package gTokenVerifier
 
 import (
 	"bytes"
@@ -11,15 +11,15 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 )
 
-type Certs struct {
+type certs struct {
 	Keys []keys `json:"keys"`
 }
 
@@ -32,6 +32,7 @@ type keys struct {
 	E   string `json:"e"`
 }
 
+// TokenInfo is the struct that contains the information of the token
 type TokenInfo struct {
 	Sub           string `json:"sub"`
 	Email         string `json:"email"`
@@ -49,27 +50,45 @@ type TokenInfo struct {
 	Exp           int64  `json:"exp"`
 }
 
+// Verify verifies the token and returns the token info if the token is valid.
+// Otherwise, it returns nil.
 func Verify(authToken string, aud string) *TokenInfo {
-	return VerifyGoogleIDToken(authToken, GetCerts(GetCertsFromURL()), aud)
+	return verifyGoogleIDToken(authToken, getCerts(getCertsFromURL()), aud)
 }
 
-func VerifyGoogleIDToken(authToken string, certs *Certs, aud string) *TokenInfo {
+// VerifyByDomain verifies the token and checks if the user in the JWT is from the specified domain.
+// Otherwise, it returns nil.
+func VerifyByDomain(authToken string, aud string, domain string) *TokenInfo {
+	tokeninfo := verifyGoogleIDToken(authToken, getCerts(getCertsFromURL()), aud)
+	if tokeninfo == nil {
+		return nil
+	}
+
+	if !validateDomain(tokeninfo.Email, domain) {
+		err := errors.New("token not valid, domain doesn't match")
+		fmt.Printf("Error verifying key %s\n", err.Error())
+		return nil
+	}
+	return tokeninfo
+}
+
+func verifyGoogleIDToken(authToken string, certs *certs, aud string) *TokenInfo {
 	header, payload, signature, messageToSign := divideAuthToken(authToken)
 
 	tokeninfo := getTokenInfo(payload)
 	var niltokeninfo *TokenInfo
 	if aud != tokeninfo.Aud {
-		err := errors.New("Token is not valid, Audience from token and certificate don't match")
+		err := errors.New("token is not valid, Audience from token and certificate don't match")
 		fmt.Printf("Error verifying key %s\n", err.Error())
 		return niltokeninfo
 	}
 	if (tokeninfo.Iss != "accounts.google.com") && (tokeninfo.Iss != "https://accounts.google.com") {
-		err := errors.New("Token is not valid, ISS from token and certificate don't match")
+		err := errors.New("token is not valid, ISS from token and certificate don't match")
 		fmt.Printf("Error verifying key %s\n", err.Error())
 		return niltokeninfo
 	}
 	if !checkTime(tokeninfo) {
-		err := errors.New("Token is not valid, Token is expired.")
+		err := errors.New("token is not valid, Token is expired")
 		fmt.Printf("Error verifying key %s\n", err.Error())
 		return niltokeninfo
 	}
@@ -104,15 +123,15 @@ func checkTime(tokeninfo *TokenInfo) bool {
 	return true
 }
 
-func GetCertsFromURL() []byte {
+func getCertsFromURL() []byte {
 	res, _ := http.Get("https://www.googleapis.com/oauth2/v3/certs")
-	certs, _ := ioutil.ReadAll(res.Body)
+	certs, _ := io.ReadAll(res.Body)
 	res.Body.Close()
 	return certs
 }
 
-func GetCerts(bt []byte) *Certs {
-	var certs *Certs
+func getCerts(bt []byte) *certs {
+	var certs *certs
 	err := json.Unmarshal(bt, &certs)
 	if err != nil {
 		log.Printf("certs unmarshall error: %s", err.Error())
@@ -184,4 +203,23 @@ func byteToInt(bt []byte) *big.Int {
 	a := big.NewInt(0)
 	a.SetBytes(bt)
 	return a
+}
+
+func validateDomain(email string, domain string) bool {
+	parts := strings.Split(email, "@")
+	if len(parts) != 2 {
+		return false
+	}
+
+	if !validateFormat(email) {
+		return false
+	}
+	emailDomain := parts[1]
+
+	return emailDomain == domain
+}
+
+func validateFormat(email string) bool {
+	regex := regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
+	return regex.MatchString(email)
 }

@@ -16,6 +16,7 @@ env:
 
 permissions: 
   contents: write
+  actions: write
 
 jobs:
   plan_job:
@@ -51,7 +52,7 @@ jobs:
         with:
           hooks: goreleaser
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASER_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Publish Module
         run: |
           git fetch --tags

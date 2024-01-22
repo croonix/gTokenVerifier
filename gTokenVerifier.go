@@ -32,6 +32,7 @@ type keys struct {
 	E   string `json:"e"`
 }
 
+// TokenInfo is the struct that contains the information of the token
 type TokenInfo struct {
 	Sub           string `json:"sub"`
 	Email         string `json:"email"`
@@ -49,10 +50,14 @@ type TokenInfo struct {
 	Exp           int64  `json:"exp"`
 }
 
+// Verify verifies the token and returns the token info if the token is valid.
+// Otherwise, it returns nil.
 func Verify(authToken string, aud string) *TokenInfo {
 	return verifyGoogleIDToken(authToken, getCerts(getCertsFromURL()), aud)
 }
 
+// VerifyByDomain verifies the token and checks if the user in the JWT is from the specified domain.
+// Otherwise, it returns nil.
 func VerifyByDomain(authToken string, aud string, domain string) *TokenInfo {
 	tokeninfo := verifyGoogleIDToken(authToken, getCerts(getCertsFromURL()), aud)
 	if tokeninfo == nil {

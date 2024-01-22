@@ -29,9 +29,7 @@ jobs:
       - name: Install dependencies
         run: go get .
       - name: Test with Go
-        run: go test
-      - name: Test with Go
-        run: echo "github.com/$GITHUB_REPOSITORY@$latest_tag"
+        run: go test -v
 
   close_pull_request_job:
     if: github.event_name == 'push'

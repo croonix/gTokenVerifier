@@ -16,9 +16,9 @@ import (
 )
 
 var (
-    token := "XXXXXXXXXXX.XXXXXXXXXXXX.XXXXXXXXXX"
-    aud := "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
-	domain = "dev.intelligencepartner.com"
+	token  = "XXXXXXXXXXX.XXXXXXXXXXXX.XXXXXXXXXX"
+	aud    = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
+	domain = "example.com"
 )
 
 func main() {
@@ -32,5 +32,9 @@ func main() {
 		fmt.Println(tokenInfo)
 	}
 }
-
 ```
+
+# Credits
+The original work was from:
+- https://github.com/ederinbay/GoogleIdTokenVerifier
+- https://github.com/GoogleIdTokenVerifier/GoogleIdTokenVerifier
